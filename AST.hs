@@ -15,7 +15,6 @@ data Expression =
   Binop Op E E |
   Negative E |
   Call E [E] |
-  Exec E |
   Variable Identifier |
   Dot E Identifier |
   Bracket E E |

@@ -155,7 +155,7 @@ opExec = Prefix p where
   p = try $ do
     string "exec"
     many1 whitespace
-    return Exec
+    return (\e -> Call e [])
 
 opBinary opParser op = Infix p AssocLeft where
   p = try $ do

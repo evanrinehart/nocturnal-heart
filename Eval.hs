@@ -99,23 +99,22 @@ eval (Call e es) = do
       envLoad env
       return v
     _ -> error "calling a non-proc value"
-
 eval (Variable x) = do
   mv <- envRead x
   case mv of
     Nothing -> error $ "variable "++x++" not defined"
     Just v -> return v
-
 eval (Tuple es) = do
   vs <- mapM eval es
   return (VTuple vs)
+eval (List es) = do
+  vs <- mapM eval es
+  return (VList vs)
 {-
   Dot E Identifier |
   Bracket E E |
   Record [(Identifier, E)] |
   Proc [Identifier] [Statement] |
-  List [E] |
-  Tuple [E] |
   Letrec E [(Identifier,E)] |
   Case E [([Pattern],E)] |
   BareCase [([Pattern],E)] |

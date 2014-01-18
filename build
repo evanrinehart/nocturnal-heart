@@ -1,1 +1,2 @@
 ghc -o parse Parse.hs
+ghc -o run Main.hs

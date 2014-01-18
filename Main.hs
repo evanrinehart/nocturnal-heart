@@ -1,8 +1,18 @@
 module Main where
 
-import Parser
+import System.Environment
+import Control.Monad.State
+
 import AST
+import Env
+import Parser
+import Eval
 
 main = do
-  src <- readFile "source"
-  print (parse src)
+  args <- getArgs
+  case args of
+    filename:_ -> runStateT (runFile filename) defaultEnv
+    _ -> do
+      src <- getContents
+      runStateT (runSource src) defaultEnv
+

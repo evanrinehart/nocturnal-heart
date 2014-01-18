@@ -72,6 +72,7 @@ eval (Binop op e1 e2) = do
     "*" -> math "*" (*) (*) v1 v2
     "/" -> division v1 v2
     "%" -> modulo v1 v2
+    "^" -> power v1 v2
     "<" -> comp "<" (<) (<) v1 v2
     "<=" -> comp "<=" (<=) (<=) v1 v2
     ">" -> comp ">" (>) (>) v1 v2
@@ -138,6 +139,10 @@ comp o _ _ _ _ = error $ o++" used on invalid arguments"
 division (VInt n1) (VInt n2) = VInt (div n1 n2)
 division (VFloat n1) (VFloat n2) = VFloat (n1 / n2)
 division _ _ = error "/ used on invalid arguments"
+
+power (VInt n1) (VInt n2) = VInt (n1 ^ n2)
+power (VFloat n1) (VFloat n2) = VFloat (n1 ** n2)
+power _ _ = error "^ used on invalid arguments"
 
 modulo (VInt n1) (VInt n2) = VInt (mod n1 n2)
 modulo (VFloat n1) (VFloat n2) = error "% used on floats"

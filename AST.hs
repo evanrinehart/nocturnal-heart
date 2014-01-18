@@ -26,7 +26,7 @@ data Expression =
   Letrec E [(Identifier,E)] |
   Case E [([Pattern],E)] |
   BareCase [([Pattern],E)] |
-  If [(E,E)]
+  If [(E,E)] (Maybe E)
     deriving (Show)
 
 data Pattern =

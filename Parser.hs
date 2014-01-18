@@ -249,7 +249,7 @@ identifier = do
   rest <- many (letter <|> digit <|> char '_' <|> char '$')
   return (lead:rest)
 
-keywords = ["true", "false", "null", "record", "case", "if", "exec", "letrec"]
+keywords = ["true", "false", "null", "record", "case", "if", "else", "exec", "letrec"]
 
 keyword = do
   choice (map string keywords)
@@ -358,9 +358,17 @@ ifexpr = do
             e2 <- expression
             return (e1,e2)
   cases <- sepEndBy p statSep
+  maybeElse <- optionMaybe $ do
+    string "else"
+    spaces
+    string "->"
+    spaces
+    e <- expression
+    optional statSep
+    return e
   char '}'
   trailing
-  return (If cases)
+  return (If cases maybeElse)
 
 pattern = do
   p <- choice

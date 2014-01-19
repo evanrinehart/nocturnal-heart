@@ -43,6 +43,8 @@ record {
 }
 {x,y|x+y}
 {$1+$2}
+p a b
+exec p
 case (x) {
   (true,9) -> 0
   (false,_) -> 1

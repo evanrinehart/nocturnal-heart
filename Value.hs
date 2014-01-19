@@ -37,3 +37,4 @@ instance Show Value where
   show (VList xs) = "[" ++ intercalate "," (map show xs) ++ "]"
   show (VBlob bs) = "(blob)"
   
+

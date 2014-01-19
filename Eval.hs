@@ -8,6 +8,7 @@ import Parser
 import Control.Monad
 import Control.Monad.State
 import Data.Map
+import qualified Data.Map as M
 
 runFile :: String -> Env Value
 runFile filename = do
@@ -111,6 +112,16 @@ eval (Tuple es) = do
 eval (List es) = do
   vs <- mapM eval es
   return (VList vs)
+eval (Proc params stats) = do
+  let freeVarNames = findFreeVars params stats
+  freeVars <- forM freeVarNames $ \name -> do
+    mval <- envRead name
+    case mval of
+      Nothing -> error "variable not defined"
+      Just v -> return v
+  let closures = M.fromList (zip freeVarNames freeVars)
+  return (VProc Nothing closures params (Right stats))
+
 {-
   Dot E Identifier |
   Bracket E E |
@@ -122,6 +133,9 @@ eval (List es) = do
   If [(E,E)] (Maybe E)
 -}
 eval _ = error "unimplemented expression"
+
+findFreeVars :: [String] -> [Statement] -> [String]
+findFreeVars ambient stats = []
 
 neg v = case v of
   VInt i -> return (VInt (-i))

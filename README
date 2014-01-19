@@ -1,0 +1,72 @@
+JAVASCRIPT
+
+Statements:
+import "module/name"
+import "module/name" as Foo
+varname = expression
+expression
+mutable[key] <- value
+rec.field <- value
+
+Values:
+integer
+float
+true
+false
+null
+string
+list
+tuple
+dictionary
+record
+proc
+blob
+
+Expressions:
+7
+7.0
+true
+false
+null
+"text"
+varname
+x+y
+x*y
+(1,"a")
+[1,2,3,4]
+record {
+  field1: 3
+  field2: 9
+  field3: {x|
+    this.field2 <- x
+  }
+}
+{x,y|x+y}
+{$1+$2}
+case (x) {
+  (true,9) -> 0
+  (false,_) -> 1
+}
+case {
+  9 -> 0
+  _ -> 1
+}
+if {
+  x > 0 -> 0
+  x < 0 -> 1
+  else -> 2
+}
+letrec (x) {
+  x: {i|1 + y i}
+  y: {j|2 * j}
+}
+
+Execution:
+statements are executed sequentially
+expressions are evaluated strictly
+procs are first class
+free variables in procs are closed over
+reference to a recursive binding in a letrec and outside a proc is an error
+reference to "this" in a record and outside a proc is an error
+arithmetic operators crash when used outside very strict context
+records and dictionaries are mutable, beware!

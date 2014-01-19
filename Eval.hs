@@ -7,6 +7,7 @@ import Parser
 
 import Control.Monad
 import Control.Monad.State
+import Control.Concurrent.MVar
 import Data.Map
 import qualified Data.Map as M
 
@@ -69,7 +70,7 @@ eval (Binop op e1 e2) = do
   v2 <- eval e2
   return $ case op of
     "+" -> math "+" (+) (+) v1 v2
-    "-" -> math "-" subtract subtract v1 v2
+    "-" -> math "-" subtract subtract v2 v1
     "*" -> math "*" (*) (*) v1 v2
     "/" -> division v1 v2
     "%" -> modulo v1 v2
@@ -121,18 +122,62 @@ eval (Proc params stats) = do
       Just v -> return v
   let closures = M.fromList (zip freeVarNames freeVars)
   return (VProc Nothing closures params (Right stats))
-
-{-
-  Dot E Identifier |
-  Bracket E E |
-  Record [(Identifier, E)] |
-  Proc [Identifier] [Statement] |
-  Letrec E [(Identifier,E)] |
-  Case E [([Pattern],E)] |
-  BareCase [([Pattern],E)] |
-  If [(E,E)] (Maybe E)
--}
-eval _ = error "unimplemented expression"
+eval (Dot e field) = do
+  obj <- eval e
+  case obj of
+    VRecord mv -> do
+      m <- io (readMVar mv)
+      case M.lookup field m of
+        Nothing -> error $ "record has no field "++field
+        Just v -> return v
+    _ -> error $ "used . on non-record"
+eval (Bracket e1 e2) = do
+  obj <- eval e1
+  key <- eval e2
+  case obj of
+    VTuple vs -> case key of
+      VInt i -> return (vs !! (fromInteger i))
+      _ -> error "brackets on tuple requires integer key"
+    VDict mv -> do
+      m <- io (readMVar mv)
+      case M.lookup key m of
+        Nothing -> return VNull
+        Just v -> return v
+    _ -> error $ "used brackets on "++show obj
+eval (Record fields) = do
+  vals <- forM fields $ \(name,e) -> do
+    -- busted, at this point you need to fixup "this" closures within the record body
+    v <- eval e
+    return (name, v)
+  let m = M.fromList vals
+  mv <- io (newMVar m)
+  return (VRecord mv)
+eval (Case e alts) = do
+  v <- eval e
+  return VNull
+eval (BareCase alts) = do
+  eval (Proc [] [ExprStatement (Case (Variable "$1") alts)])
+eval (If [] Nothing) = error "no cases match in if expression"
+eval (If [] (Just e)) = eval e
+eval (If ((e1,e2):es) maybeElse) = do
+  p <- eval e1
+  case p of
+    VTrue -> do
+      v <- eval e2
+      return v
+    VFalse -> do
+      eval (If es maybeElse)
+    _ -> error "conditions in an if expression must evaluate to true or false"
+eval (Letrec e defs) = do
+  env <- envSave
+  forM defs $ \(name,e) -> do
+    envWrite name (error "violation of the letrec restriction")
+  forM defs $ \(name,e) -> do
+    v <- eval e
+    envWrite name v
+  v <- eval e
+  envLoad env
+  return v
 
 findFreeVars :: [String] -> [Statement] -> [String]
 findFreeVars ambient stats = []
@@ -163,13 +208,13 @@ modulo (VFloat n1) (VFloat n2) = error "% used on floats"
 modulo _ _ = error "% used on invalid arguments"
 
 land VTrue VTrue = VTrue
-land VFalse VTrue= VFalse
+land VFalse VTrue = VFalse
 land VTrue VFalse = VFalse
 land VFalse VFalse = VFalse
 land _ _ = error "&& used on invalid arguments"
 
 lor VTrue VTrue = VTrue
-lor VFalse VTrue= VTrue
+lor VFalse VTrue = VTrue
 lor VTrue VFalse = VTrue
 lor VFalse VFalse = VFalse
 lor _ _ = error "|| used on invalid arguments"

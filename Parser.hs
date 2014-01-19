@@ -70,7 +70,7 @@ operatorChar = oneOf "+-*/|&^%<>="
 
 hardTrailing = do
   ws <- whitespace
-  notFollowedBy (alphaNum <|> oneOf "_$([{")
+  notFollowedBy (alphaNum <|> oneOf "_$([{\"")
   return ws
 
 trailing :: Parser String
@@ -90,7 +90,7 @@ term = choice
     letrec,
     ifexpr,
     caseexpr,
-    basecase,
+    barecase,
     literal
   ]
 
@@ -209,12 +209,12 @@ variable = do
 
 literal = do
   l <- choice [
+    try stringLitExpr,
     try double,
     try integer,
     string "true" >> return LTrue,
     string "false" >> return LFalse,
-    string "null" >> return LNull,
-    stringLitExpr
+    string "null" >> return LNull
     ]
   trailing
   return l
@@ -410,7 +410,7 @@ caseexpr = do
   trailing
   return (Case e cases)
 
-basecase = do
+barecase = do
   string "case"
   spaces
   char '{'

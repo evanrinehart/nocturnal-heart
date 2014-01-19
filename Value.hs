@@ -3,8 +3,11 @@ module Value where
 import Data.ByteString (ByteString)
 import Data.Map (Map)
 import Control.Concurrent.MVar
+import Data.IORef
 import Data.List
 import AST
+
+type Context = Map String (Either (IORef Indirection) Value)
 
 data Value =
   VNull |
@@ -14,13 +17,20 @@ data Value =
   VFloat Double |
   VString String |
   VRecord (MVar (Map String Value)) |
-  VProc (Maybe String) (Map String Value) [Identifier] (Either SysProc [Statement]) |
+  VProc (Maybe String) Context [Identifier] (Either SysProc [Statement]) |
   VDict (MVar (Map Value Value)) |
   VList [Value] |
   VTuple [Value] |
   VBlob ByteString
 
-type SysProc = (Map String Value) -> IO Value
+data Indirection =
+  JustCrash |
+  RecordRestriction |
+  LetrecRestriction |
+  Normal Value
+    deriving (Show)
+
+type SysProc = Context -> [Value] -> IO Value
 
 instance Eq Value where
   VNull == VNull = True

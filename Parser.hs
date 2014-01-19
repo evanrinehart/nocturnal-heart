@@ -373,7 +373,7 @@ ifexpr = do
 pattern = do
   p <- choice
     [
-      fmap PatLit literal,
+      fmap PatLit (try literal),
       fmap PatVar identifier,
       fmap PatTup $ do
         char '('

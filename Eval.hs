@@ -8,6 +8,7 @@ import Parser
 import Control.Monad
 import Control.Monad.State
 import Control.Concurrent.MVar
+import Control.Exception
 import Data.Map
 import qualified Data.Map as M
 
@@ -31,14 +32,18 @@ runAST (stat:stats) = do
 
 runStat :: Statement -> Env Value
 runStat stat = case stat of
-  ExprStatement e -> eval e
+  ExprStatement e -> do
+    v <- eval e
+    io (evaluate v)
   BindStatement var e -> do
     v <- eval e
+    io (evaluate v)
     -- fixup proc heads in v with v
     envWrite var v
     return VNull
   Import mName filename -> do
     v <- runFile filename
+    io (evaluate v)
     -- if v is a record, union that into the env
     return VNull
   BracketLeftArrow e1 e2 e3 -> do
@@ -90,17 +95,15 @@ eval (Call e es) = do
   case p of
     VProc mName closures params body -> do
       when (length args /= length params) (error $ "wrong number of arguments")
-      env <- envSave
-      forM_ (zip params args) $ \(name,value) -> do
-        envWrite name value
-      v <- case body of
+      case body of
         Left sys -> do
-          env <- envSave
-          io (sys env)
+          io (sys closures args)
         Right stats -> do
-          runAST stats
-      envLoad env
-      return v
+          env <- envSave
+          forM_ (zip params args) $ \(name,arg) -> envWrite name arg
+          r <- runAST stats
+          envLoad env
+          return r
     _ -> error "calling a non-proc value"
 eval (Variable x) = do
   mv <- envRead x
@@ -113,15 +116,17 @@ eval (Tuple es) = do
 eval (List es) = do
   vs <- mapM eval es
   return (VList vs)
+
 eval (Proc params stats) = do
   let freeVarNames = findFreeVars params stats
   freeVars <- forM freeVarNames $ \name -> do
-    mval <- envRead name
-    case mval of
+    mlr <- envReadRaw name
+    case mlr of
       Nothing -> error "variable not defined"
-      Just v -> return v
+      Just lr -> return lr
   let closures = M.fromList (zip freeVarNames freeVars)
   return (VProc Nothing closures params (Right stats))
+
 eval (Dot e field) = do
   obj <- eval e
   case obj of

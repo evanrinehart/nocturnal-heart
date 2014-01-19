@@ -70,3 +70,5 @@ reference to a recursive binding in a letrec and outside a proc is an error
 reference to "this" in a record and outside a proc is an error
 arithmetic operators crash when used outside very strict context
 records and dictionaries are mutable, beware!
+when imported, modules are executed to produce an export record
+  but using IO in such a module results in undefined behavior

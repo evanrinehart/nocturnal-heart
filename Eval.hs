@@ -36,7 +36,7 @@ runStat stat = case stat of
     v <- eval e
     io (evaluate v)
   BindStatement var e -> do
-    v <- eval e
+    v <- eval (Letrec (Variable var) [(var, e)])
     io (evaluate v)
     -- fixup proc heads in v with v
     envWrite var v
